@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Random Walker on 2D Grid</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #f4f7fa;
+      color: #333;
+      text-align: center;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h2 {
+      margin-top: 0;
+    }
+
+    .controls {
+      margin-top: 20px;
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      align-items: center;
+    }
+
+    .button, .input {
+      font-size: 18px;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .button {
+      background-color: #007BFF;
+      color: white;
+    }
+
+    .button:hover {
+      background-color: #0056b3;
+    }
+
+    .input {
+      width: 80px;
+      text-align: center;
+      font-size: 18px;
+    }
+
+    canvas {
+      background: #e0e0e0;
+      display: block;
+      margin: 20px auto;
+      border: 1px solid #ccc;
+    }
+
+    .icon {
+      font-size: 24px;
+    }
+
+    .timeDisplay {
+      margin-top: 20px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+  </style>
+</head>
+<body>
+
+  <h2>Random Walker on 2D Grid</h2>
+  
+  <!-- Grid Size Input -->
+  <div>
+    <label for="gridSize">Grid Size (10-100): </label>
+    <input class="input" id="gridSize" type="number" min="10" max="100" value="20" />
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <button class="button" id="toggleBtn"><span class="icon">▶️</span></button>
+    <button class="button" id="resetBtn">🔄 Reset</button>
+  </div>
+
+  <!-- Time Display -->
+  <div class="timeDisplay" id="timeDisplay">Time: 0</div>
+
+  <!-- Canvas -->
+  <canvas id="canvas" width="600" height="600"></canvas>
+
+  <script>
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+
+    let gridSize = 20; // Default grid size
+    let x, y;
+    let walking = false;
+    let animationFrame;
+    let visitedCells = [];
+    let timeElapsed = 0;
+
+    // Buttons
+    const toggleBtn = document.getElementById("toggleBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const timeDisplay = document.getElementById("timeDisplay");
+
+    // Grid Size Input
+    const gridSizeInput = document.getElementById("gridSize");
+    gridSizeInput.addEventListener("input", updateGridSize);
+
+    // Start/Stop Toggle and Reset Functions
+    toggleBtn.onclick = toggleWalking;
+    resetBtn.onclick = resetSimulation;
+
+    function initializeWalker() {
+      // Start at a random position, avoiding the border
+      const startX = Math.floor(Math.random() * (canvas.width / gridSize - 2)) + 1; 
+      const startY = Math.floor(Math.random() * (canvas.height / gridSize - 2)) + 1;
+      x = startX * gridSize;
+      y = startY * gridSize;
+    }
+
+    function drawGrid() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw visited cells (black)
+      visitedCells.forEach(cell => {
+        ctx.fillStyle = "black";
+        ctx.fillRect(cell.x, cell.y, gridSize, gridSize);
+      });
+
+      // Draw grid lines
+      ctx.strokeStyle = "#ddd";
+      for (let i = 0; i <= canvas.width; i += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(i, 0);
+        ctx.lineTo(i, canvas.height);
+        ctx.stroke();
+      }
+      for (let j = 0; j <= canvas.height; j += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, j);
+        ctx.lineTo(canvas.width, j);
+        ctx.stroke();
+      }
+    }
+
+    function drawWalker() {
+      ctx.fillStyle = "red"; // Red color for the walker
+      ctx.fillRect(x, y, gridSize, gridSize);
+    }
+
+    function randomWalk() {
+      const directions = [
+        { dx: gridSize, dy: 0 },  // Right
+        { dx: -gridSize, dy: 0 }, // Left
+        { dx: 0, dy: gridSize },  // Down
+        { dx: 0, dy: -gridSize }  // Up
+      ];
+
+      let availableMoves = directions.filter(direction => {
+        const newX = x + direction.dx;
+        const newY = y + direction.dy;
+
+        // Check if the new position is within bounds and not visited (blocked)
+        if (
+          newX >= 0 && newX < canvas.width &&
+          newY >= 0 && newY < canvas.height &&
+          !visitedCells.some(cell => cell.x === newX && cell.y === newY)
+        ) {
+          return true;
+        }
+        return false;
+      });
+
+      // If there are available moves, make one
+      if (availableMoves.length > 0) {
+        const direction = availableMoves[Math.floor(Math.random() * availableMoves.length)];
+        x += direction.dx;
+        y += direction.dy;
+        visitedCells.push({ x, y });
+        return true;
+      } else {
+        return false; // No available moves left
+      }
+    }
+
+    function animate() {
+      if (walking) {
+        if (!randomWalk()) {
+          // Stop if no valid moves are left
+          stopWalking();
+        }
+        drawGrid();
+        drawWalker();
+        timeElapsed++;
+        timeDisplay.innerHTML = `Time: ${timeElapsed}`;
+        animationFrame = requestAnimationFrame(animate);
+      }
+    }
+
+    function toggleWalking() {
+      if (walking) {
+        walking = false;
+        cancelAnimationFrame(animationFrame);
+        toggleBtn.innerHTML = '<span class="icon">▶️</span>'; // Change to Play icon
+      } else {
+        walking = true;
+        animate();
+        toggleBtn.innerHTML = '<span class="icon">⏸️</span>'; // Change to Pause icon
+      }
+    }
+
+    function resetSimulation() {
+      walking = false;
+      cancelAnimationFrame(animationFrame);
+      visitedCells = [];
+      timeElapsed = 0;
+      initializeWalker();
+      drawGrid();
+      drawWalker();
+      toggleBtn.innerHTML = '<span class="icon">▶️</span>'; // Reset to Play icon
+      timeDisplay.innerHTML = `Time: ${timeElapsed}`;
+    }
+
+    function updateGridSize() {
+      // Grid size is directly proportional to the number input
+      gridSize = Math.floor(canvas.width / gridSizeInput.value);
+      
+      // Recalculate the walker's initial position and reset visited cells
+      initializeWalker();
+      visitedCells = [];
+      
+      drawGrid();
+      drawWalker();
+    }
+
+    // Initialize on load
+    initializeWalker();
+    drawGrid();
+    drawWalker();
+
+  </script>
+
+</body>
+</html>

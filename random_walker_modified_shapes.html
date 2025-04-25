@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Random Walker on Polygon Grid</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #f4f7fa;
+      color: #333;
+      text-align: center;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h2 {
+      margin-top: 0;
+    }
+
+    .controls {
+      margin-top: 20px;
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      align-items: center;
+    }
+
+    .button, .input {
+      font-size: 18px;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .button {
+      background-color: #007BFF;
+      color: white;
+    }
+
+    .button:hover {
+      background-color: #0056b3;
+    }
+
+    .input {
+      width: 80px;
+      text-align: center;
+      font-size: 18px;
+    }
+
+    canvas {
+      background: #e0e0e0;
+      display: block;
+      margin: 20px auto;
+      border: 1px solid #ccc;
+    }
+
+    .icon {
+      font-size: 24px;
+    }
+
+    .timeDisplay {
+      margin-top: 20px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+  </style>
+</head>
+<body>
+
+  <h2>Random Walker on Polygon Grid</h2>
+  
+  <!-- Grid Size Input -->
+  <div>
+    <label for="gridSize">Grid Size (10-100): </label>
+    <input class="input" id="gridSize" type="number" min="10" max="100" value="20" />
+  </div>
+
+  <!-- Polygon Selector -->
+  <div class="controls">
+    <button class="button" id="squareBtn">Square</button>
+    <button class="button" id="triangleBtn">Triangle</button>
+    <button class="button" id="pentagonBtn">Pentagon</button>
+    <button class="button" id="octagonBtn">Octagon</button>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <button class="button" id="toggleBtn"><span class="icon">▶️</span></button>
+    <button class="button" id="resetBtn">🔄 Reset</button>
+  </div>
+
+  <!-- Time Display -->
+  <div class="timeDisplay" id="timeDisplay">Time: 0</div>
+
+  <!-- Canvas -->
+  <canvas id="canvas" width="600" height="600"></canvas>
+
+  <script>
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+
+    let gridSize = 20; // Default grid size
+    let x, y;
+    let walking = false;
+    let animationFrame;
+    let visitedCells = [];
+    let timeElapsed = 0;
+    let gridShape = 'square'; // Default shape
+    let cellWidth, cellHeight;
+
+    // Buttons
+    const toggleBtn = document.getElementById("toggleBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const timeDisplay = document.getElementById("timeDisplay");
+
+    // Grid Size Input
+    const gridSizeInput = document.getElementById("gridSize");
+    gridSizeInput.addEventListener("input", updateGridSize);
+
+    // Polygon Shape Buttons
+    const squareBtn = document.getElementById("squareBtn");
+    const triangleBtn = document.getElementById("triangleBtn");
+    const pentagonBtn = document.getElementById("pentagonBtn");
+    const octagonBtn = document.getElementById("octagonBtn");
+
+    squareBtn.onclick = () => { gridShape = 'square'; resetSimulation(); };
+    triangleBtn.onclick = () => { gridShape = 'triangle'; resetSimulation(); };
+    pentagonBtn.onclick = () => { gridShape = 'pentagon'; resetSimulation(); };
+    octagonBtn.onclick = () => { gridShape = 'octagon'; resetSimulation(); };
+
+    // Start/Stop Toggle and Reset Functions
+    toggleBtn.onclick = toggleWalking;
+    resetBtn.onclick = resetSimulation;
+
+    function initializeWalker() {
+      // Start at a random position, avoiding the border
+      const startX = Math.floor(Math.random() * (canvas.width / cellWidth - 2)) + 1; 
+      const startY = Math.floor(Math.random() * (canvas.height / cellHeight - 2)) + 1;
+      x = startX * cellWidth;
+      y = startY * cellHeight;
+    }
+
+    function drawGrid() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      visitedCells.forEach(cell => {
+        ctx.fillStyle = "black";
+        ctx.beginPath();
+        ctx.moveTo(cell.x, cell.y);
+        ctx.lineTo(cell.x + cellWidth, cell.y);
+        ctx.lineTo(cell.x + cellWidth / 2, cell.y - cellHeight); // Adjust for shapes like triangles, pentagons
+        ctx.fill();
+      });
+      drawPolygonGrid();
+    }
+
+    function drawPolygonGrid() {
+      if (gridShape === 'square') {
+        drawSquareGrid();
+      } else if (gridShape === 'triangle') {
+        drawTriangleGrid();
+      } else if (gridShape === 'pentagon') {
+        drawPentagonGrid();
+      } else if (gridShape === 'octagon') {
+        drawOctagonGrid();
+      }
+    }
+
+    function drawSquareGrid() {
+      ctx.strokeStyle = "#ddd";
+      for (let i = 0; i < canvas.width; i += cellWidth) {
+        for (let j = 0; j < canvas.height; j += cellHeight) {
+          ctx.strokeRect(i, j, cellWidth, cellHeight);
+        }
+      }
+    }
+
+    function drawTriangleGrid() {
+      // Draw grid with triangles
+      // Implement logic for drawing triangles
+    }
+
+    function drawPentagonGrid() {
+      // Draw grid with pentagons
+      // Implement logic for drawing pentagons
+    }
+
+    function drawOctagonGrid() {
+      // Draw grid with octagons
+      // Implement logic for drawing octagons
+    }
+
+    function drawWalker() {
+      ctx.fillStyle = "red"; // Red color for the walker
+      ctx.fillRect(x, y, cellWidth, cellHeight);
+    }
+
+    function randomWalk() {
+      const directions = [
+        { dx: cellWidth, dy: 0 },  // Right
+        { dx: -cellWidth, dy: 0 }, // Left
+        { dx: 0, dy: cellHeight },  // Down
+        { dx: 0, dy: -cellHeight }  // Up
+      ];
+
+      let availableMoves = directions.filter(direction => {
+        const newX = x + direction.dx;
+        const newY = y + direction.dy;
+
+        if (
+          newX >= 0 && newX < canvas.width &&
+          newY >= 0 && newY < canvas.height &&
+          !visitedCells.some(cell => cell.x === newX && cell.y === newY)
+        ) {
+          return true;
+        }
+        return false;
+      });
+
+      if (availableMoves.length > 0) {
+        const direction = availableMoves[Math.floor(Math.random() * availableMoves.length)];
+        x += direction.dx;
+        y += direction.dy;
+        visitedCells.push({ x, y });
+        return true;
+      } else {
+        return false;
+      }
+    }
+
+    function animate() {
+      if (walking) {
+        if (!randomWalk()) {
+          stopWalking();
+        }
+        drawGrid();
+        drawWalker();
+        timeElapsed++;
+        timeDisplay.innerHTML = `Time: ${timeElapsed}`;
+        animationFrame = requestAnimationFrame(animate);
+      }
+    }
+
+    function toggleWalking() {
+      if (walking) {
+        walking = false;
+        cancelAnimationFrame(animationFrame);
+        toggleBtn.innerHTML = '<span class="icon">▶️</span>';
+      } else {
+        walking = true;
+        animate();
+        toggleBtn.innerHTML = '<span class="icon">⏸️</span>';
+      }
+    }
+
+    function resetSimulation() {
+      walking = false;
+      cancelAnimationFrame(animationFrame);
+      visitedCells = [];
+      timeElapsed = 0;
+      timeDisplay.innerHTML = "Time: 0";
+      gridSize = parseInt(gridSizeInput.value);
+      initializeWalker();
+      adjustCanvasSize();
+      drawGrid();
+      drawWalker();
+    }
+
+    function updateGridSize() {
+      gridSize = parseInt(gridSizeInput.value);
+      resetSimulation();
+    }
+
+    function adjustCanvasSize() {
+      // Scale canvas size to fit grid cells
+      const gridWidth = gridSize * 50;  // Number of cells * unit size
+      const gridHeight = gridSize * 50;
+      canvas.width = gridWidth;
+      canvas.height = gridHeight;
+      cellWidth = gridWidth / gridSize;
+      cellHeight = gridHeight / gridSize;
+    }
+
+    // Initialize the simulation
+    adjustCanvasSize();
+    initializeWalker();
+    drawGrid();
+    drawWalker();
+
+  </script>
+
+</body>
+</html>
+
